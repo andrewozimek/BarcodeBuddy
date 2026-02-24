@@ -1,3 +1,6 @@
+//This is the User Interface. It displays the "Scan Item" button and handles the logic for showing the scanner sheet.
+
+
 import SwiftUI
 struct ContentView: View {
     @State private var resultText = "Scan a product to begin"
@@ -21,10 +24,12 @@ struct ContentView: View {
             .padding(.horizontal)
         }
         .sheet(isPresented: $showingScanner) {
+            
+            
 #if os(iOS)
     if #available(iOS 16.0, *) {
         #if targetEnvironment(simulator)
-        // Use the safe SwiftUI wrapper on Simulator to avoid VisionKit
+        //dont use vision kit if its a simulator
         DataScannerView(scannedCode: $resultText)
         #else
         // Use the real scanner on device

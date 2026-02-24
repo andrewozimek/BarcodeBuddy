@@ -1,3 +1,6 @@
+//The Secondary Scanner. slightly different camera logic, used as an alternative scanning method.
+
+
 import SwiftUI
 import AVFoundation
 

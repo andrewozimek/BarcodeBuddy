@@ -1,3 +1,6 @@
+//the primary scanner. A SwiftUI view that checks if the device is a supported iPhone and launches the camera
+
+
 #if canImport(UIKit)
 import SwiftUI
 import UIKit
@@ -6,8 +9,7 @@ import UIKit
 import VisionKit
 #endif
 
-/// A single, unified scanner view that uses VisionKit when available on iOS 16+
-/// and falls back to a simple placeholder UI in unsupported environments.
+//scanner that uses vision kit
 struct ScannerView: View {
     @Binding var scannedCode: String
 
@@ -24,7 +26,7 @@ struct ScannerView: View {
     }
 }
 
-// MARK: - Fallback (non-VisionKit) implementation
+//this is the fallback if it doesnt work
 private struct FallbackScanner: View {
     @Binding var scannedCode: String
     @Environment(\.dismiss) private var dismiss
@@ -46,7 +48,9 @@ private struct FallbackScanner: View {
     }
 }
 
-// MARK: - VisionKit-backed implementation
+
+
+// VisionKit-backed implementation
 #if os(iOS)
 @available(iOS 16.0, *)
 private struct ScannerRepresentable: UIViewControllerRepresentable {
@@ -88,6 +92,8 @@ private struct ScannerRepresentable: UIViewControllerRepresentable {
     }
 }
 
+
+//helper method
 #if canImport(VisionKit)
 @available(iOS 16.0, *)
 extension ScannerRepresentable.Coordinator: DataScannerViewControllerDelegate {

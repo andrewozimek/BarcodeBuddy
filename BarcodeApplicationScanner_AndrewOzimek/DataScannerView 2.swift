@@ -1,3 +1,7 @@
+//this is old file
+//need to get rid of
+
+
 import SwiftUI
 import AVFoundation
 

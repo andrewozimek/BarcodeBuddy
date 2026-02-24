@@ -4,6 +4,7 @@
 //
 //  Created by Ozimek, Andrew R. on 2/18/26.
 //
+//This launches the app and tells iOS to load ContentView as the first screen.
 
 import SwiftUI
 
