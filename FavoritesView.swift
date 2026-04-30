@@ -157,6 +157,8 @@ struct FavoritesView: View {
         withAnimation {
             if DatabaseManager.shared.toggleFavorite(id: item.id) {
                 loadItems()
+                // Notify other views to refresh
+                NotificationCenter.default.post(name: NSNotification.Name("RefreshStats"), object: nil)
             }
         }
     }
@@ -180,6 +182,9 @@ struct FavoritesView: View {
             let generator = UINotificationFeedbackGenerator()
             generator.notificationOccurred(.success)
             #endif
+            
+            // Notify other views to refresh
+            NotificationCenter.default.post(name: NSNotification.Name("RefreshStats"), object: nil)
         }
     }
     

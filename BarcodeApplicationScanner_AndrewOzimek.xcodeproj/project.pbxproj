@@ -6,7 +6,12 @@
 	objectVersion = 77;
 	objects = {
 
+/* Begin PBXBuildFile section */
+		5F3AB2112F8EDC57006D573C /* FavoritesView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5F3AB2102F8EDC57006D573C /* FavoritesView.swift */; };
+/* End PBXBuildFile section */
+
 /* Begin PBXFileReference section */
+		5F3AB2102F8EDC57006D573C /* FavoritesView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FavoritesView.swift; sourceTree = "<group>"; };
 		5F54FE2C2F469624001A13F8 /* BarcodeApplicationScanner_AndrewOzimek.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = BarcodeApplicationScanner_AndrewOzimek.app; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
 
@@ -34,6 +39,7 @@
 			children = (
 				5F54FE2E2F469624001A13F8 /* BarcodeApplicationScanner_AndrewOzimek */,
 				5F54FE2D2F469624001A13F8 /* Products */,
+				5F3AB2102F8EDC57006D573C /* FavoritesView.swift */,
 			);
 			sourceTree = "<group>";
 		};
@@ -119,6 +125,7 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				5F3AB2112F8EDC57006D573C /* FavoritesView.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

@@ -10,6 +10,13 @@ import SwiftUI
 
 @main
 struct BarcodeApplicationScanner_AndrewOzimekApp: App {
+    
+    init() {
+        // Initialize database on app launch to avoid first-scan issues
+        _ = DatabaseManager.shared
+        print("🚀 App initialized - Database ready")
+    }
+    
     var body: some Scene {
         WindowGroup {
             ContentView()

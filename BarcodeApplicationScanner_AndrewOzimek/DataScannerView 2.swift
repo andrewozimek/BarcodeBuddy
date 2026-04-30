@@ -84,22 +84,37 @@ private struct ScannerRepresentable: UIViewControllerRepresentable {
             isHighlightingEnabled: true
         )
         controller.delegate = context.coordinator
-        return controller
-    }
-
-    func updateUIViewController(_ uiViewController: DataScannerViewController, context: Context) {
+        
+        // Start scanning immediately after creation
         Task { @MainActor in
             let status = AVCaptureDevice.authorizationStatus(for: .video)
             switch status {
             case .authorized:
-                try? uiViewController.startScanning()
+                try? await Task.sleep(nanoseconds: 100_000_000) // 0.1 second delay
+                try? controller.startScanning()
+                print("📸 Scanner started (authorized)")
             case .notDetermined:
+                print("📸 Requesting camera permission...")
                 let granted = await AVCaptureDevice.requestAccess(for: .video)
-                if granted { try? uiViewController.startScanning() }
-            default:
+                if granted {
+                    try? await Task.sleep(nanoseconds: 100_000_000) // 0.1 second delay
+                    try? controller.startScanning()
+                    print("📸 Scanner started (permission granted)")
+                } else {
+                    print("❌ Camera permission denied")
+                }
+            case .denied, .restricted:
+                print("❌ Camera access denied or restricted")
+            @unknown default:
                 break
             }
         }
+        
+        return controller
+    }
+
+    func updateUIViewController(_ uiViewController: DataScannerViewController, context: Context) {
+        // Do nothing - scanner already started in makeUIViewController
     }
 
     static func dismantleUIViewController(_ uiViewController: DataScannerViewController, coordinator: Coordinator) {

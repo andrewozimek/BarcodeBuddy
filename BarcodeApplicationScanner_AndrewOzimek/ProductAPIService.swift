@@ -98,7 +98,8 @@ actor BarcodeLookupClient {
         let urlString = "https://api.barcodelookup.com/v3/products?barcode=\(barcode)&key=\(apiKey)"
         guard let url = URL(string: urlString) else { return nil }
         
-        let (data, response) = try await URLSession.shared.data(for: url)
+        var request = URLRequest(url: url)
+        let (data, response) = try await URLSession.shared.data(for: request)
         guard let http = response as? HTTPURLResponse, http.statusCode == 200 else { return nil }
         
         let decoder = JSONDecoder()

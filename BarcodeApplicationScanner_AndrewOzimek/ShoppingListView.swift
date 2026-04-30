@@ -114,6 +114,8 @@ struct ShoppingListView: View {
             withAnimation {
                 loadItems()
             }
+            // Notify other views to refresh
+            NotificationCenter.default.post(name: NSNotification.Name("RefreshStats"), object: nil)
         }
     }
     
@@ -122,6 +124,8 @@ struct ShoppingListView: View {
             withAnimation {
                 shoppingItems.removeAll { $0.id == item.id }
             }
+            // Notify other views to refresh
+            NotificationCenter.default.post(name: NSNotification.Name("RefreshStats"), object: nil)
         }
     }
     
@@ -138,6 +142,8 @@ struct ShoppingListView: View {
             }
             loadItems()
         }
+        // Notify other views to refresh
+        NotificationCenter.default.post(name: NSNotification.Name("RefreshStats"), object: nil)
     }
     
     private func clearAll() {
@@ -147,6 +153,8 @@ struct ShoppingListView: View {
             }
             shoppingItems = []
         }
+        // Notify other views to refresh
+        NotificationCenter.default.post(name: NSNotification.Name("RefreshStats"), object: nil)
     }
 }
 

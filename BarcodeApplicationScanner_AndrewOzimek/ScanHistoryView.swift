@@ -7,6 +7,8 @@ struct ScanHistoryView: View {
     @State private var showingDetails = false
     @State private var searchText = ""
     @State private var showingFavoritesOnly = false
+    @State private var showingShareSheet = false
+    @State private var exportFileURL: URL? = nil
     
     var filteredItems: [SavedScannedItem] {
         var items = savedItems
@@ -34,6 +36,37 @@ struct ScanHistoryView: View {
             VStack {
                 if savedItems.isEmpty {
                     emptyStateView
+                } else if filteredItems.isEmpty {
+                    // Show message when filter results in no items
+                    VStack(spacing: 20) {
+                        Image(systemName: showingFavoritesOnly ? "star.slash" : "magnifyingglass")
+                            .font(.system(size: 60))
+                            .foregroundStyle(.gray)
+                        
+                        Text(showingFavoritesOnly ? "No Favorites Yet" : "No Results")
+                            .font(.title2)
+                            .bold()
+                        
+                        Text(showingFavoritesOnly ? "Swipe right on items to add them to favorites" : "Try a different search term")
+                            .font(.body)
+                            .foregroundStyle(.secondary)
+                            .multilineTextAlignment(.center)
+                            .padding(.horizontal)
+                        
+                        if showingFavoritesOnly {
+                            Button {
+                                showingFavoritesOnly = false
+                            } label: {
+                                Text("Show All Items")
+                                    .font(.headline)
+                                    .padding()
+                                    .background(Color.blue)
+                                    .foregroundColor(.white)
+                                    .cornerRadius(12)
+                            }
+                        }
+                    }
+                    .frame(maxWidth: .infinity, maxHeight: .infinity)
                 } else {
                     List {
                         ForEach(filteredItems) { item in
@@ -68,20 +101,94 @@ struct ScanHistoryView: View {
             }
             .navigationTitle("Scan History")
             .toolbar {
-                ToolbarItem(placement: .topBarTrailing) {
+                ToolbarItem(placement: .automatic) {
                     Button {
-                        showingFavoritesOnly.toggle()
+                        withAnimation {
+                            showingFavoritesOnly.toggle()
+                        }
                     } label: {
-                        Image(systemName: showingFavoritesOnly ? "star.fill" : "star")
-                            .foregroundStyle(showingFavoritesOnly ? .yellow : .gray)
+                        HStack(spacing: 4) {
+                            Image(systemName: showingFavoritesOnly ? "star.fill" : "star")
+                                .foregroundStyle(showingFavoritesOnly ? .yellow : .gray)
+                            
+                            let favoriteCount = savedItems.filter { $0.isFavorite }.count
+                            if favoriteCount > 0 {
+                                Text("\(favoriteCount)")
+                                    .font(.caption2)
+                                    .foregroundStyle(showingFavoritesOnly ? .yellow : .gray)
+                            }
+                        }
                     }
                 }
                 
-                ToolbarItem(placement: .topBarTrailing) {
+                ToolbarItem(placement: .automatic) {
                     Button {
                         loadItems()
                     } label: {
                         Image(systemName: "arrow.clockwise")
+                    }
+                }
+                
+                ToolbarItem(placement: .automatic) {
+                    Menu {
+                        Button {
+                            let path = DatabaseManager.shared.getDatabasePath()
+                            #if os(macOS)
+                            NSPasteboard.general.clearContents()
+                            NSPasteboard.general.setString(path, forType: .string)
+                            #else
+                            UIPasteboard.general.string = path
+                            #endif
+                            print("📋 Database path copied to clipboard:")
+                            print(path)
+                        } label: {
+                            Label("Copy Database Path", systemImage: "doc.on.doc")
+                        }
+                        
+                        Button {
+                            let path = DatabaseManager.shared.getDatabasePath()
+                            print("\n" + String(repeating: "=", count: 60))
+                            print("📂 DATABASE FILE LOCATION")
+                            print(String(repeating: "=", count: 60))
+                            print(path)
+                            print(String(repeating: "=", count: 60) + "\n")
+                        } label: {
+                            Label("Print Database Path", systemImage: "printer")
+                        }
+                        
+                        Divider()
+                        
+                        Button {
+                            let items = DatabaseManager.shared.getAllScannedItems()
+                            print("\n" + String(repeating: "=", count: 60))
+                            print("📊 DATABASE STATISTICS")
+                            print(String(repeating: "=", count: 60))
+                            print("Total items: \(items.count)")
+                            print("Favorites: \(items.filter { $0.isFavorite }.count)")
+                            print("UPC/Barcodes: \(items.filter { $0.kind == .upc }.count)")
+                            print("QR Codes: \(items.filter { $0.kind == .qr }.count)")
+                            print("URLs: \(items.filter { $0.kind == .url }.count)")
+                            print("Text: \(items.filter { $0.kind == .text }.count)")
+                            print(String(repeating: "=", count: 60) + "\n")
+                        } label: {
+                            Label("Show Database Stats", systemImage: "chart.bar")
+                        }
+                        
+                        Divider()
+                        
+                        Button {
+                            exportAllToCSV()
+                        } label: {
+                            Label("Export All to CSV", systemImage: "square.and.arrow.up")
+                        }
+                        
+                        Button {
+                            exportFavoritesToCSV()
+                        } label: {
+                            Label("Export Favorites to CSV", systemImage: "star.square.on.square")
+                        }
+                    } label: {
+                        Image(systemName: "ellipsis.circle")
                     }
                 }
             }
@@ -91,6 +198,11 @@ struct ScanHistoryView: View {
             .sheet(isPresented: $showingDetails) {
                 if let item = selectedItem {
                     ScannedDetailsView(item: item.toScannedItem())
+                }
+            }
+            .sheet(isPresented: $showingShareSheet) {
+                if let fileURL = exportFileURL {
+                    ShareSheet(fileURL: fileURL)
                 }
             }
         }
@@ -114,7 +226,9 @@ struct ScanHistoryView: View {
     }
     
     private func loadItems() {
-        savedItems = DatabaseManager.shared.getAllScannedItems()
+        let items = DatabaseManager.shared.getAllScannedItems()
+        savedItems = items
+        print("🔄 ScanHistoryView loaded \(items.count) items from database")
     }
     
     private func deleteItem(_ item: SavedScannedItem) {
@@ -130,7 +244,107 @@ struct ScanHistoryView: View {
             loadItems()
         }
     }
+    
+    // MARK: - CSV Export Functions
+    private func exportAllToCSV() {
+        let csvContent = CSVExporter.exportToCSV(items: savedItems)
+        let filename = "BarcodeScanHistory_\(Date().timeIntervalSince1970).csv"
+        
+        if let fileURL = CSVExporter.saveCSVToFile(csvContent: csvContent, filename: filename) {
+            exportFileURL = fileURL
+            showingShareSheet = true
+        }
+    }
+    
+    private func exportFavoritesToCSV() {
+        let csvContent = CSVExporter.exportFavoritesToCSV(items: savedItems)
+        let filename = "Favorites_\(Date().timeIntervalSince1970).csv"
+        
+        if let fileURL = CSVExporter.saveCSVToFile(csvContent: csvContent, filename: filename) {
+            exportFileURL = fileURL
+            showingShareSheet = true
+        }
+    }
 }
+
+// Share Sheet for iOS/macOS
+struct ShareSheet: View {
+    let fileURL: URL
+    
+    var body: some View {
+        #if os(iOS)
+        ShareSheetiOS(fileURL: fileURL)
+        #elseif os(macOS)
+        ShareSheetMac(fileURL: fileURL)
+        #endif
+    }
+}
+
+#if os(iOS)
+struct ShareSheetiOS: UIViewControllerRepresentable {
+    let fileURL: URL
+    
+    func makeUIViewController(context: Context) -> UIActivityViewController {
+        let activityViewController = UIActivityViewController(
+            activityItems: [fileURL],
+            applicationActivities: nil
+        )
+        return activityViewController
+    }
+    
+    func updateUIViewController(_ uiViewController: UIActivityViewController, context: Context) {
+        // No update needed
+    }
+}
+#endif
+
+#if os(macOS)
+struct ShareSheetMac: View {
+    let fileURL: URL
+    
+    var body: some View {
+        VStack(spacing: 20) {
+            Image(systemName: "checkmark.circle.fill")
+                .font(.system(size: 60))
+                .foregroundStyle(.green)
+            
+            Text("CSV File Created!")
+                .font(.title2)
+                .bold()
+            
+            Text("File saved to:")
+                .font(.subheadline)
+                .foregroundStyle(.secondary)
+            
+            Text(fileURL.path)
+                .font(.caption)
+                .foregroundStyle(.secondary)
+                .textSelection(.enabled)
+                .padding()
+                .background(Color.gray.opacity(0.1))
+                .cornerRadius(8)
+            
+            HStack(spacing: 12) {
+                Button {
+                    NSWorkspace.shared.selectFile(fileURL.path, inFileViewerRootedAtPath: "")
+                } label: {
+                    Label("Show in Finder", systemImage: "folder")
+                }
+                .buttonStyle(.borderedProminent)
+                
+                Button {
+                    NSWorkspace.shared.open(fileURL)
+                } label: {
+                    Label("Open File", systemImage: "doc.text")
+                }
+                .buttonStyle(.bordered)
+            }
+        }
+        .padding(40)
+        .frame(width: 500, height: 350)
+    }
+}
+#endif
 
 // Row view for each history item
 struct HistoryItemRow: View {
@@ -138,11 +352,39 @@ struct HistoryItemRow: View {
     
     var body: some View {
         HStack(spacing: 12) {
-            // Icon based on item kind
-            Image(systemName: iconName)
-                .font(.title2)
-                .foregroundStyle(.blue)
-                .frame(width: 40)
+            // Product image or icon
+            if let imageUrl = item.imageUrl, let url = URL(string: imageUrl) {
+                AsyncImage(url: url) { phase in
+                    switch phase {
+                    case .empty:
+                        ProgressView()
+                            .frame(width: 50, height: 50)
+                    case .success(let image):
+                        image
+                            .resizable()
+                            .scaledToFill()
+                            .frame(width: 50, height: 50)
+                            .clipShape(RoundedRectangle(cornerRadius: 8))
+                    case .failure:
+                        // Fall back to icon if image fails
+                        Image(systemName: iconName)
+                            .font(.title2)
+                            .foregroundStyle(.blue)
+                            .frame(width: 50, height: 50)
+                    @unknown default:
+                        Image(systemName: iconName)
+                            .font(.title2)
+                            .foregroundStyle(.blue)
+                            .frame(width: 50, height: 50)
+                    }
+                }
+            } else {
+                // Icon based on item kind when no image
+                Image(systemName: iconName)
+                    .font(.title2)
+                    .foregroundStyle(.blue)
+                    .frame(width: 50, height: 50)
+            }
             
             VStack(alignment: .leading, spacing: 4) {
                 HStack {

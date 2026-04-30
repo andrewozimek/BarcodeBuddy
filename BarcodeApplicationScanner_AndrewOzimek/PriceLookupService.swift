@@ -18,12 +18,29 @@ struct PriceInfo: Identifiable {
 actor PriceLookupService {
     
     // Get price estimates using free methods
-    func lookupPrices(barcode: String, productName: String?) async -> [PriceInfo] {
+    func lookupPrices(barcode: String, productName: String?, brand: String? = nil) async -> [PriceInfo] {
         var prices: [PriceInfo] = []
         
-        // Create search query - prefer product name if available, otherwise use barcode
-        let searchQuery = productName ?? "UPC \(barcode)"
+        // Create search query - prefer product name if available, otherwise format barcode properly
+        let searchQuery: String
+        if let name = productName, !name.isEmpty {
+            // Use product name and brand if available
+            if let brand = brand, !brand.isEmpty {
+                searchQuery = "\(brand) \(name)"
+            } else {
+                searchQuery = name
+            }
+        } else {
+            // Format barcode for better search results
+            searchQuery = "\(barcode)"
+        }
+        
         let encodedQuery = searchQuery.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed) ?? barcode
+        let encodedBarcode = barcode.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed) ?? barcode
+        
+        // Determine availability message based on whether we have product info
+        let hasProductInfo = productName != nil && !productName!.isEmpty
+        let availabilityMessage = hasProductInfo ? "Compare prices" : "Search by barcode"
         
         // Google Shopping link (user can tap to see prices)
         if let googleURL = URL(string: "https://www.google.com/search?tbm=shop&q=\(encodedQuery)") {
@@ -31,7 +48,7 @@ actor PriceLookupService {
                 retailer: "Google Shopping",
                 price: nil,
                 currency: "USD",
-                priceDisplay: "View prices",
+                priceDisplay: "Compare prices",
                 url: googleURL,
                 availability: "Multiple retailers",
                 shipping: nil
@@ -44,9 +61,9 @@ actor PriceLookupService {
                 retailer: "Amazon",
                 price: nil,
                 currency: "USD",
-                priceDisplay: "View prices",
+                priceDisplay: "Search Amazon",
                 url: amazonURL,
-                availability: "Check availability",
+                availability: availabilityMessage,
                 shipping: nil
             ))
         }
@@ -57,9 +74,9 @@ actor PriceLookupService {
                 retailer: "Walmart",
                 price: nil,
                 currency: "USD",
-                priceDisplay: "View prices",
+                priceDisplay: "Search Walmart",
                 url: walmartURL,
-                availability: "Check availability",
+                availability: availabilityMessage,
                 shipping: nil
             ))
         }
@@ -70,9 +87,9 @@ actor PriceLookupService {
                 retailer: "Target",
                 price: nil,
                 currency: "USD",
-                priceDisplay: "View prices",
+                priceDisplay: "Search Target",
                 url: targetURL,
-                availability: "Check availability",
+                availability: availabilityMessage,
                 shipping: nil
             ))
         }
